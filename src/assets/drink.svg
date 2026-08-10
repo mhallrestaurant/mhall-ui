@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g2" x1="0" x2="1">
+      <stop offset="0" stop-color="#a1c4fd"/>
+      <stop offset="1" stop-color="#c2e9fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="16" fill="url(#g2)" />
+  <g transform="translate(80,40)">
+    <rect x="60" y="60" width="120" height="160" rx="12" fill="#fff" opacity="0.95" />
+    <circle cx="120" cy="110" r="18" fill="#a1c4fd" opacity="0.9" />
+    <text x="320" y="140" font-family="Inter, Arial, sans-serif" font-size="72" fill="#fff" font-weight="700" letter-spacing="2">DRINK</text>
+  </g>
+</svg>

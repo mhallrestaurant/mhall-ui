@@ -1,0 +1,247 @@
+import React, { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useGuestInteraction } from '../context/GuestInteractionContext'
+
+type Addon = {
+  name: string;
+  price: number;
+}
+
+type Size = {
+  name: string;
+  price: number;
+}
+
+const ProductDetails: React.FC = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const product = location.state
+  const { quickCheckout } = useGuestInteraction()
+
+  const [quantity, setQuantity] = useState(1)
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([])
+  const [animationPhase, setAnimationPhase] = useState<'initial' | 'circle'>('initial')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimationPhase('circle'), 6000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!product) {
+    return <div className="min-h-screen flex items-center justify-center">Product not found</div>
+  }
+
+  const parsePrice = (priceStr: string) => {
+    const num = parseFloat(priceStr.replace('k', '').replace(' Rwf', ''));
+    return priceStr.includes('k') ? num * 1000 : num;
+  }
+
+  const basePrice = parsePrice(product.price)
+
+  const addons: Addon[] = [
+    { name: 'Extra cheese', price: 5000 },
+    { name: 'Mushrooms', price: 3000 },
+    { name: 'Olives', price: 2000 },
+    { name: 'Grilled chicken', price: 4000 }
+  ]
+
+  const addonPrice = selectedAddons.reduce((sum, addonName) => {
+    const addon = addons.find(a => a.name === addonName)
+    return sum + (addon ? addon.price : 0)
+  }, 0)
+  const totalPrice = (basePrice + addonPrice) * quantity
+
+  const handleAddonChange = (addonName: string) => {
+    setSelectedAddons(prev =>
+      prev.includes(addonName)
+        ? prev.filter(name => name !== addonName)
+        : [...prev, addonName]
+    )
+  }
+
+  const handleQuantityChange = (delta: number) => {
+    setQuantity(prev => Math.max(1, prev + delta))
+  }
+
+  const handleOrderNow = () => {
+    const itemName = selectedAddons.length > 0
+      ? `${product.title} (${selectedAddons.join(', ')})`
+      : product.title
+
+    const adjustedPrice = basePrice + addonPrice
+
+    const cartItem = {
+      id: `${product.id}-${Date.now()}`, // Unique id for cart item
+      menuItemId: product.id,
+      name: itemName,
+      price: adjustedPrice,
+      quantity: quantity,
+      notes: selectedAddons.length > 0 ? `Addons: ${selectedAddons.join(', ')}` : undefined
+    }
+
+    quickCheckout(cartItem)
+  }
+
+  return (
+    <div className=" mt-10">
+      <div className="h-full mt- max-w-7xl mx-auto px-4 flex flex-col">
+        <button onClick={() => navigate(-1)} className="mt-4 mb-4  text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-base">Back</button>
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full md:flex">
+            <div className="md:w-1/2 h-full flex flex-col">
+              <motion.img
+                src={product.image}
+                alt={product.title}
+                className="w-full h-64 md:h-96 object-cover rounded-lg shadow-lg"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                whileHover={{ scale: 1.05 }}
+              />
+              <div className="mt-6 px-4">
+                <h2 className="text-2xl font-bold mb-4">About product</h2>
+                <p className="text-gray-700 text-base leading-relaxed">{product.description}</p>
+
+                {/* Quantity Controls */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">Quantity</h3>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleQuantityChange(-1)}
+                      className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition"
+                    >
+                      -
+                    </button>
+                    <span className="text-xl font-bold">{quantity}</span>
+                    <button
+                      onClick={() => handleQuantityChange(1)}
+                      className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Addons */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">Add-ons</h3>
+                  <div className="space-y-2">
+                    {addons.map((addon) => (
+                      <label key={addon.name} className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedAddons.includes(addon.name)}
+                          onChange={() => handleAddonChange(addon.name)}
+                          className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                        />
+                        <span className="text-gray-700">{addon.name}</span>
+                        <span className="text-gray-600">+{addon.price} Rwf</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:w-1/2 h-full flex items-center justify-center px-8">
+              <div className="relative w-full max-w-sm h-96 flex items-center justify-center">
+                <motion.img
+                  src={product.image}
+                  alt="Related product view 1"
+                  className="w-40 h-40 object-cover rounded-lg shadow-md cursor-pointer absolute"
+                  style={{ top: '10%', left: '50%', transform: 'translateX(-50%)' }}
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: 1,
+                    x: [0, 0, 80, 0],
+                    y: [0, 60, 60, 0]
+                  }}
+                  transition={
+                    animationPhase === 'initial'
+                      ? {
+                          delay: 0.2,
+                          duration: 0.5,
+                          x: { repeat: Infinity, duration: 6, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
+                        }
+                      : {
+                          x: { repeat: Infinity, duration: 8, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 8, ease: "easeInOut" }
+                        }
+                  }
+                  whileHover={{ scale: 1.1, rotate: 2 }}
+                  whileTap={{ scale: 0.95 }}
+                />
+                <motion.img
+                  src={product.image}
+                  alt="Related product view 2"
+                  className="w-40 h-40 object-cover rounded-lg shadow-md cursor-pointer absolute"
+                  style={{ bottom: '10%', left: '10%' }}
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: 1,
+                    x: [0, 60, 0, 0],
+                    y: [0, -60, -60, 0]
+                  }}
+                  transition={
+                    animationPhase === 'initial'
+                      ? {
+                          delay: 0.4,
+                          duration: 0.5,
+                          x: { repeat: Infinity, duration: 6, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
+                        }
+                      : {
+                          x: { repeat: Infinity, duration: 8, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 8, ease: "easeInOut" }
+                        }
+                  }
+                  whileHover={{ scale: 1.1, rotate: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                />
+                <motion.img
+                  src={product.image}
+                  alt="Related product view 3"
+                  className="w-40 h-40 object-cover rounded-lg shadow-md cursor-pointer absolute"
+                  style={{ bottom: '10%', right: '10%' }}
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: 1,
+                    x: [0, -60, -80, 0],
+                    y: [0, -60, 0, 0]
+                  }}
+                  transition={
+                    animationPhase === 'initial'
+                      ? {
+                          delay: 0.6,
+                          duration: 0.5,
+                          x: { repeat: Infinity, duration: 6, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
+                        }
+                      : {
+                          x: { repeat: Infinity, duration: 8, ease: "easeInOut" },
+                          y: { repeat: Infinity, duration: 8, ease: "easeInOut" }
+                        }
+                  }
+                  whileHover={{ scale: 1.1, rotate: 3 }}
+                  whileTap={{ scale: 0.95 }}
+                />
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={handleOrderNow}
+                  className="bg-red-600 text-white px-6 py-3 rounded-lg text-lg font-bold hover:bg-red-700 transition duration-300 shadow-lg hover:shadow-xl"
+                >
+                  Order Now - {totalPrice} Rwf
+                </button>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ProductDetails
