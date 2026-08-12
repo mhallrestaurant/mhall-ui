@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../../redux/store';
-import { selectDashboardStats, selectDashboardLoading, selectDashboardError, fetchDashboardStats } from '../../../redux/slices/dashboardSlice';
+import { selectDashboardStats, selectDashboardLoading, selectDashboardError, fetchDashboardStats, resetRevenue } from '../../../redux/slices/dashboardSlice';
 
 // Reusable Stat Card Component
 const StatCard: React.FC<{
@@ -166,7 +166,6 @@ const PaymentSummaryCard: React.FC = () => {
   const paymentSummary = stats.paymentSummary;
 
   const paymentColors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
     partial: 'bg-blue-100 text-blue-800',
     paid: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
@@ -174,7 +173,6 @@ const PaymentSummaryCard: React.FC = () => {
   };
 
   const paymentLabels: Record<string, string> = {
-    pending: 'Pending',
     partial: 'Partial',
     paid: 'Paid',
     failed: 'Failed',
@@ -182,7 +180,6 @@ const PaymentSummaryCard: React.FC = () => {
   };
 
   const paymentEntries: [string, number][] = [
-    ['pending', paymentSummary.pending],
     ['partial', paymentSummary.partial],
     ['paid', paymentSummary.paid],
     ['failed', paymentSummary.failed],
@@ -222,13 +219,13 @@ const RecentOrdersTable: React.FC = () => {
   const recentOrders = stats.recentOrders;
 
   const statusColors: Record<string, string> = {
-    new: 'bg-blue-100 text-blue-800',
-    confirmed: 'bg-indigo-100 text-indigo-800',
-    preparing: 'bg-yellow-100 text-yellow-800',
-    ready: 'bg-green-100 text-green-800',
-    out_for_delivery: 'bg-purple-100 text-purple-800',
-    completed: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-red-100 text-red-800',
+    PENDING: 'bg-blue-100 text-blue-800',
+    CONFIRMED: 'bg-indigo-100 text-indigo-800',
+    PREPARING: 'bg-yellow-100 text-yellow-800',
+    READY: 'bg-green-100 text-green-800',
+    OUT_FOR_DELIVERY: 'bg-purple-100 text-purple-800',
+    COMPLETED: 'bg-gray-100 text-gray-800',
+    CANCELLED: 'bg-red-100 text-red-800',
   };
 
   return (
@@ -360,10 +357,23 @@ const DashboardPage: React.FC = () => {
   const stats = useSelector(selectDashboardStats);
   const loading = useSelector(selectDashboardLoading);
   const error = useSelector(selectDashboardError);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
+
+  const handleResetRevenue = async () => {
+    try {
+      await dispatch(resetRevenue()).unwrap();
+      setResetMessage('Revenue data recalculated and synced successfully');
+      dispatch(fetchDashboardStats());
+      setTimeout(() => setResetMessage(null), 4000);
+    } catch (err) {
+      setResetMessage(err instanceof Error ? err.message : 'Failed to reset revenue');
+      setTimeout(() => setResetMessage(null), 4000);
+    }
+  };
 
   if (loading && !stats) {
     return <div className="text-center py-12">
@@ -470,6 +480,11 @@ const DashboardPage: React.FC = () => {
       {/* Quick Actions */}
       <div className="neu-card p-6">
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--neu-text-primary)' }}>Quick Actions</h3>
+        {resetMessage && (
+          <div className="mb-4 p-3 rounded-lg text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+            {resetMessage}
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           <button className="neu-tile flex flex-col items-center justify-center py-5 w-full cursor-pointer">
             <ShoppingBagIcon className="h-7 w-7 mb-2" style={{ color: 'var(--neu-accent)' }} />
@@ -490,6 +505,10 @@ const DashboardPage: React.FC = () => {
           <button className="neu-tile flex flex-col items-center justify-center py-5 w-full cursor-pointer">
             <CreditCardIcon className="h-7 w-7 mb-2" style={{ color: 'var(--neu-accent)' }} />
             <span className="text-sm font-semibold" style={{ color: 'var(--neu-text-primary)' }}>Payments</span>
+          </button>
+          <button onClick={handleResetRevenue} className="neu-tile flex flex-col items-center justify-center py-5 w-full cursor-pointer">
+            <ChartBarIcon className="h-7 w-7 mb-2" style={{ color: 'var(--neu-accent)' }} />
+            <span className="text-sm font-semibold" style={{ color: 'var(--neu-text-primary)' }}>Reset Revenue</span>
           </button>
         </div>
       </div>

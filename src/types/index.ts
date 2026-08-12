@@ -2,9 +2,9 @@
 
 export type ID = string;
 
-export type Status = 'new' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
+export type Status = 'PENDING' | 'PAYMENT_WAITING' | 'PAYMENT_UNDER_REVIEW' | 'APPROVED' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'COMPLETED' | 'CANCELLED';
 
-export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'failed' | 'cancelled';
+export type PaymentStatus = 'partial' | 'paid' | 'failed' | 'cancelled';
 
 export type BackendOrderStatus = 'PENDING' | 'PAYMENT_WAITING' | 'PAYMENT_UNDER_REVIEW' | 'APPROVED' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'COMPLETED' | 'CANCELLED';
 
@@ -69,6 +69,8 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  paidAmount?: number;
+  remainingAmount?: number;
 }
 
 export interface Payment {

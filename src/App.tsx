@@ -30,6 +30,7 @@ const MissionValuesPage = lazy(() => import('./pages/MissionValues'))
 const OurStoryPage = lazy(() => import('./pages/OurStory'))
 const WhyChooseUsPage = lazy(() => import('./pages/WhyChooseUs'))
 const TermsPage = lazy(() => import('./pages/Terms'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicy'))
 const ExistingMenuPage = lazy(() => import('./pages/Menu'))
 const PdfMenuPage = lazy(() => import('./pages/MenuPage'))
 const ProductDetailsPage = lazy(() => import('./pages/ProductDetails'))
@@ -118,6 +119,14 @@ const RouteAwareSeo: React.FC = () => {
       }
     }
 
+    if (pathname === '/privacy-policy') {
+      return {
+        title: 'Privacy Policy',
+        description: 'Review Moor Hall’s privacy policy and data protection practices.',
+        path: pathname,
+      }
+    }
+
     return {
       title: 'Moor Hall | Restaurant, Coffee & Catering',
       description: 'Moor Hall offers exceptional dining, specialty coffee, fresh bakery, and tailored catering for memorable events.',
@@ -131,9 +140,9 @@ const RouteAwareSeo: React.FC = () => {
 export default function App() {
 	return (
 		<Provider store={store}>
-			<AdminProvider>
-				<GuestInteractionProvider>
-					<Router>
+			<GuestInteractionProvider>
+				<Router>
+					<AdminProvider>
 						<div className="min-h-screen flex flex-col">
 							<RouteAwareSeo />
 							<StructuredData />
@@ -269,13 +278,19 @@ export default function App() {
 										<WhyChooseUsPage />
 									</>
 								} />
-								<Route path="/terms" element={
-									<>
-										<Navbar />
-										<TermsPage />
-									</>
-								} />
-								<Route path="/product" element={
+							<Route path="/terms" element={
+								<>
+									<Navbar />
+									<TermsPage />
+								</>
+							} />
+							<Route path="/privacy-policy" element={
+								<>
+									<Navbar />
+									<PrivacyPolicyPage />
+								</>
+							} />
+							<Route path="/product" element={
 									<>
 										<Navbar />
 										<ProductDetailsPage />
@@ -327,11 +342,11 @@ export default function App() {
 						<ReservationModal />
 						<CateringModal />
 						<EventModal />
-						<SuccessModal />
-					</div>
-				</Router>
-				</GuestInteractionProvider>
-			</AdminProvider>
-		</Provider>
-	)
+ 					<SuccessModal />
+ 				</div>
+ 			</AdminProvider>
+ 		</Router>
+ 	</GuestInteractionProvider>
+ </Provider>
+ )
 }

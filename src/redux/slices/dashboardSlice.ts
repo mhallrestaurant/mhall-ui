@@ -40,7 +40,6 @@ interface DashboardState {
       amount: number;
     }>;
     paymentSummary: {
-      pending: number;
       partial: number;
       paid: number;
       failed: number;
@@ -75,6 +74,22 @@ const initialState: DashboardState = {
     }
   );
 
+  export const resetRevenue = createAsyncThunk(
+    'dashboard/resetRevenue',
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await apiService.resetRevenue();
+        if (response.data.success) {
+          return response.data.data;
+        } else {
+          throw new Error(response.data.message || 'Failed to reset revenue');
+        }
+      } catch (error: any) {
+        return rejectWithValue(error.response?.data?.message || error.message || 'An error occurred');
+      }
+    }
+  );
+
 const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
@@ -96,6 +111,12 @@ const dashboardSlice = createSlice({
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string || action.error.message || 'Failed to fetch dashboard stats';
+      })
+      .addCase(resetRevenue.fulfilled, (state) => {
+        state.error = null;
+      })
+      .addCase(resetRevenue.rejected, (state, action) => {
+        state.error = action.payload as string || action.error.message || 'Failed to reset revenue';
       });
   },
 });

@@ -21,7 +21,7 @@ const Contacts: React.FC = () => {
     e.preventDefault()
     const { firstName, lastName, email, phone, subject, message } = formData
     const body = `Name: ${firstName} ${lastName}%0D%0APhone: ${phone}%0D%0AEmail: ${email}%0D%0A%0D%0A${message}`
-    window.location.href = `mailto:Moorhall@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`
+    window.location.href = `mailto:mhallrestaurant@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`
     setSubmitted(true)
     setTimeout(() => setSubmitted(false), 3000)
     setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: '', message: '' })
@@ -170,7 +170,7 @@ const Contacts: React.FC = () => {
                      </div>
                      <div>
                        <p className="font-bold text-lg">Email Address</p>
-                       <p className="text-[#D4A017] font-bold">Moorhall@gmail.com</p>
+                       <p className="text-[#D4A017] font-bold">mhallrestaurant@gmail.com</p>
                        <p className="text-gray-600">Booking@Moorhall.rw</p>
                      </div>
                    </div>
@@ -192,15 +192,16 @@ const Contacts: React.FC = () => {
                 
                 {/* Map */}
                 <div className="mt-8 overflow-hidden rounded-lg border border-gray-300 bg-white">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!4v1783589346025!6m8!1m7!1s7_h935J_k0oDfwfrx6yIXA!2m2!1d-1.966454131559618!2d30.162203761095!3f190.50243!4f0!5f0.7820865974627469"
-                    className="h-48 w-full"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    title="Moor Hall location"
-                  />
+                 <iframe
+                 src="https://www.google.com/maps/embed?pb=!4v1783589346025!6m8!1m7!1s7_h935J_k0oDfwfrx6yIXA!2m2!1d-1.966454131559618!2d30.162203761095!3f190.50243!4f0!5f0.7820865974627469"
+                 className="h-48 w-full"
+                 style={{ border: 0 }}
+                 allowFullScreen
+                 loading="lazy"
+                 referrerPolicy="strict-origin-when-cross-origin"
+                 title="Moor Hall location"
+                 allow="accelerometer; gyroscope; magnetometer"
+               />
                 </div>
               </div>
 

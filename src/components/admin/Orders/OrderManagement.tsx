@@ -5,7 +5,7 @@ import { Order, Status, PaymentStatus } from '../../../types';
 const ITEMS_PER_PAGE = 10;
 
 const OrderManagement: React.FC = () => {
-  const { orders, updateOrderStatus, updateOrderPaymentStatus, getOrderById, sendCustomEmail } = useAdmin();
+  const { orders, updateOrderStatus, updateOrderPaymentStatus, getOrderById, sendCustomEmail, deleteOrder } = useAdmin();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPayment, setFilterPayment] = useState<string>('all');
@@ -14,32 +14,34 @@ const OrderManagement: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const statusOptions: Array<{value: string; label: string}> = [
     { value: 'all', label: 'All Status' },
-    { value: 'new', label: 'New' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'preparing', label: 'Preparing' },
-    { value: 'ready', label: 'Ready' },
-    { value: 'out_for_delivery', label: 'Out for Delivery' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'PENDING', label: 'New' },
+    { value: 'CONFIRMED', label: 'Confirmed' },
+    { value: 'PREPARING', label: 'Preparing' },
+    { value: 'READY', label: 'Ready' },
+    { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELLED', label: 'Cancelled' },
   ];
 
   const normalizeStatusValue = (value: string) => {
     const map: Record<string, string> = {
-      pending: 'new',
-      payment_waiting: 'new',
-      payment_under_review: 'confirmed',
-      approved: 'confirmed',
-      confirmed: 'confirmed',
-      preparing: 'preparing',
-      ready: 'ready',
-      out_for_delivery: 'out_for_delivery',
-      completed: 'completed',
-      cancelled: 'cancelled',
+      pending: 'PENDING',
+      payment_waiting: 'PENDING',
+      payment_under_review: 'CONFIRMED',
+      approved: 'CONFIRMED',
+      confirmed: 'CONFIRMED',
+      preparing: 'PREPARING',
+      ready: 'READY',
+      out_for_delivery: 'OUT_FOR_DELIVERY',
+      completed: 'COMPLETED',
+      cancelled: 'CANCELLED',
     };
-    return map[value.toLowerCase()] || value.toLowerCase();
+    return map[value.toLowerCase()] || value.toUpperCase();
   };
 
   const paymentOptions: Array<{value: string; label: string}> = [
@@ -49,29 +51,60 @@ const OrderManagement: React.FC = () => {
   ];
 
   const statusColors: Record<string, string> = {
-    new: 'bg-blue-100 text-blue-800',
-    confirmed: 'bg-indigo-100 text-indigo-800',
-    preparing: 'bg-yellow-100 text-yellow-800',
-    ready: 'bg-green-100 text-green-800',
-    out_for_delivery: 'bg-purple-100 text-purple-800',
-    completed: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-red-100 text-red-800',
+    PENDING: 'bg-blue-100 text-blue-800',
+    CONFIRMED: 'bg-indigo-100 text-indigo-800',
+    PREPARING: 'bg-yellow-100 text-yellow-800',
+    READY: 'bg-green-100 text-green-800',
+    OUT_FOR_DELIVERY: 'bg-purple-100 text-purple-800',
+    COMPLETED: 'bg-gray-100 text-gray-800',
+    CANCELLED: 'bg-red-100 text-red-800',
   };
 
   const paymentColors: Record<string, string> = {
     partial: 'bg-blue-100 text-blue-800',
     paid: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800',
+    cancelled: 'bg-gray-100 text-gray-800',
   };
 
   const formatPaymentStatus = (value: string) => {
     const map: Record<string, string> = {
-      pending: 'Pending',
       partial: 'Partial',
       paid: 'Paid',
       failed: 'Failed',
       cancelled: 'Cancelled',
     };
     return map[value.toLowerCase()] || value;
+  };
+
+  const getOrderTypeBadge = (orderType?: string) => {
+    const isDelivery = orderType === 'DELIVERY' || orderType === 'delivery';
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+        isDelivery ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+      }`}>
+        {isDelivery ? 'Delivery' : 'Pickup'}
+      </span>
+    );
+  };
+
+  const getPaymentSelectionBadge = (paymentStatus?: string, paidAmount?: number, total?: number) => {
+    const isPartial = paymentStatus === 'partial';
+    const remaining = total && paidAmount !== undefined ? total - paidAmount : 0;
+    return (
+      <div className="flex flex-col">
+        <span className={`px-2 py-1 rounded-full text-xs font-medium w-fit ${
+          isPartial ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+        }`}>
+          {isPartial ? 'Partial Payment' : 'Full Payment'}
+        </span>
+        {isPartial && remaining > 0 && (
+          <span className="text-xs text-gray-500 mt-1">
+            Remaining: {remaining.toLocaleString()} RWF
+          </span>
+        )}
+      </div>
+    );
   };
 
   const filteredOrders = orders.filter(order => {
@@ -133,6 +166,18 @@ const OrderManagement: React.FC = () => {
       setCustomMessage('');
     }
     setSendingEmail(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    await deleteOrder(deleteConfirm.id);
+    setDeleteConfirm(null);
+    setDeleting(false);
+    if (selectedOrder?.id === deleteConfirm.id) {
+      setShowDetails(false);
+      setSelectedOrder(null);
+    }
   };
 
   return (
@@ -206,18 +251,19 @@ const OrderManagement: React.FC = () => {
         <div className="overflow-x-auto">
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
+               <thead className="bg-gray-50">
+                 <tr>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                 </tr>
+               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {pagedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
@@ -228,53 +274,60 @@ const OrderManagement: React.FC = () => {
                        <div className="text-sm font-medium text-gray-900">{order.customer?.name}</div>
                        <div className="text-sm text-gray-500">{order.customer?.phone}</div>
                      </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.items.length} items
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {order.total.toLocaleString()} RWF
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[normalizeStatusValue(order.status)]}`}>
-                        {normalizeStatusValue(order.status).replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${paymentColors[order.paymentStatus]}`}>
-                        {formatPaymentStatus(order.paymentStatus)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => viewOrderDetails(order)}
-                          className="text-[#BF2201] hover:text-[#a01800] font-medium"
-                        >
-                          View
-                        </button>
-                        <select
-                          className="text-sm border border-gray-300 rounded px-2 py-1"
-                          value={normalizeStatusValue(order.status)}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value as Status)}
-                        >
-                          <option value="new">New</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="preparing">Preparing</option>
-                          <option value="ready">Ready</option>
-                          <option value="out_for_delivery">Out for Delivery</option>
-                          <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
+                     <td className="px-6 py-4 whitespace-nowrap">
+                       {getOrderTypeBadge(order.orderType)}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                       {new Date(order.createdAt).toLocaleDateString()}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                       {order.items.length} items
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                       {order.total.toLocaleString()} RWF
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap">
+                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[normalizeStatusValue(order.status)]}`}>
+                         {normalizeStatusValue(order.status).replace('_', ' ')}
+                       </span>
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap">
+                       {getPaymentSelectionBadge(order.paymentStatus, order.paidAmount, order.total)}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm">
+                       <div className="flex space-x-2">
+                         <button
+                           onClick={() => viewOrderDetails(order)}
+                           className="text-[#BF2201] hover:text-[#a01800] font-medium"
+                         >
+                           View
+                         </button>
+                         <select
+                           className="text-sm border border-gray-300 rounded px-2 py-1"
+                           value={normalizeStatusValue(order.status)}
+                           onChange={(e) => handleStatusChange(order.id, e.target.value as Status)}
+                         >
+                           <option value="PENDING">New</option>
+                           <option value="CONFIRMED">Confirmed</option>
+                           <option value="PREPARING">Preparing</option>
+                           <option value="READY">Ready</option>
+                           <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                           <option value="COMPLETED">Completed</option>
+                           <option value="CANCELLED">Cancelled</option>
+                         </select>
+                         <button
+                           onClick={() => setDeleteConfirm(order)}
+                           className="text-red-600 hover:text-red-800 font-medium"
+                         >
+                           Delete
+                         </button>
+                       </div>
+                     </td>
+                   </tr>
                 ))}
                 {pagedOrders.length === 0 && (
                   <tr className="bg-white">
-                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-500">
+                    <td colSpan={9} className="px-6 py-10 text-center text-sm text-gray-500">
                       No orders found.
                     </td>
                   </tr>
@@ -332,7 +385,14 @@ const OrderManagement: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Order Type</h3>
-                  <p className="text-lg">{selectedOrder.orderType}</p>
+                  <div className="mt-1">
+                    {getOrderTypeBadge(selectedOrder.orderType)}
+                  </div>
+                  {selectedOrder.orderType === 'PICKUP' && selectedOrder.pickupTime && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Pickup: {new Date(selectedOrder.pickupTime).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -348,8 +408,8 @@ const OrderManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Delivery Address */}
-              {selectedOrder.deliveryAddress && (
+              {/* Delivery Address / Pickup Info */}
+              {selectedOrder.orderType === 'DELIVERY' && selectedOrder.deliveryAddress && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Delivery Address</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -357,7 +417,7 @@ const OrderManagement: React.FC = () => {
                     <p>{selectedOrder.deliveryAddress.city}, {selectedOrder.deliveryAddress.postalCode}</p>
                     <p>{selectedOrder.deliveryAddress.country}</p>
                     {selectedOrder.deliveryAddress.notes && (
-                      <p className="text-gray-600 mt-1">{selectedOrder.deliveryAddress.notes}</p>
+                      <p className="text-gray-600 mt-1">Notes: {selectedOrder.deliveryAddress.notes}</p>
                     )}
                   </div>
                 </div>
@@ -405,10 +465,12 @@ const OrderManagement: React.FC = () => {
                     <span>Subtotal</span>
                     <span>{selectedOrder.subtotal.toLocaleString()} RWF</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Delivery Fee</span>
-                    <span>{selectedOrder.deliveryFee.toLocaleString()} RWF</span>
-                  </div>
+                  {selectedOrder.orderType === 'DELIVERY' && (
+                    <div className="flex justify-between">
+                      <span>Delivery Fee</span>
+                      <span>{selectedOrder.deliveryFee.toLocaleString()} RWF</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>Tax</span>
                     <span>{selectedOrder.tax.toLocaleString()} RWF</span>
@@ -417,6 +479,18 @@ const OrderManagement: React.FC = () => {
                     <span>Total</span>
                     <span>{selectedOrder.total.toLocaleString()} RWF</span>
                   </div>
+                  {selectedOrder.paymentStatus === 'partial' && (
+                    <>
+                      <div className="flex justify-between text-blue-600">
+                        <span>Paid Amount</span>
+                        <span>{(selectedOrder.paidAmount || 0).toLocaleString()} RWF</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>Remaining Amount</span>
+                        <span>{(selectedOrder.remainingAmount || 0).toLocaleString()} RWF</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -429,13 +503,13 @@ const OrderManagement: React.FC = () => {
                     value={normalizeStatusValue(selectedOrder.status)}
                     onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value as Status)}
                   >
-                    <option value="new">New</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="preparing">Preparing</option>
-                    <option value="ready">Ready</option>
-                    <option value="out_for_delivery">Out for Delivery</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="PENDING">New</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="PREPARING">Preparing</option>
+                    <option value="READY">Ready</option>
+                    <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
                   </select>
                 </div>
                 <div>
@@ -445,7 +519,6 @@ const OrderManagement: React.FC = () => {
                     value={selectedOrder.paymentStatus}
                     onChange={(e) => handlePaymentChange(selectedOrder.id, e.target.value as PaymentStatus)}
                   >
-                    <option value="pending">Pending</option>
                     <option value="partial">Partial</option>
                     <option value="paid">Paid</option>
                     <option value="failed">Failed</option>
@@ -500,6 +573,33 @@ const OrderManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Order</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete order <span className="font-semibold">#{deleteConfirm.orderNumber}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

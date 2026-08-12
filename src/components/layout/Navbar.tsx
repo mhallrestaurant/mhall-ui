@@ -205,7 +205,8 @@ const Navbar: React.FC = () => {
         { label: 'Our Story', href: '/about/our-story' }, 
         { label: 'Mission & Values', href: '/about/mission' }, 
         { label: 'Why Choose Us', href: '/about/why-us' }, 
-        { label: 'Terms & Conditions', href: '/terms' }
+        { label: 'Terms & Conditions', href: '/terms' },
+        { label: 'Privacy Policy', href: '/privacy-policy' }
       ] 
     },
     { 

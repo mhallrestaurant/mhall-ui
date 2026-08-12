@@ -243,6 +243,10 @@ class ApiService {
     return this.client.get(`/orders/${id}`);
   }
 
+  async deleteOrder(id: number) {
+    return this.client.delete(`/orders/${id}`);
+  }
+
   async updateOrderStatus(id: number, status?: string, note?: string, paymentStatus?: string, customerEmail?: string) {
     return this.client.patch(`/orders/${id}/status`, { status, note, paymentStatus, customerEmail });
   }
@@ -262,6 +266,10 @@ class ApiService {
   // Dashboard
   async getDashboardStats() {
     return this.client.get('/admin/dashboard');
+  }
+
+  async resetRevenue() {
+    return this.client.post('/admin/dashboard/reset-revenue');
   }
 
   // Service Items

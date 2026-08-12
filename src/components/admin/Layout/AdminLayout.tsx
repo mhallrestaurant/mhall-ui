@@ -216,9 +216,9 @@ const AdminLayout: React.FC = () => {
 
       <div className="flex min-h-screen">
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col neu-sidebar overflow-hidden transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col neu-sidebar overflow-hidden transition-transform duration-200 ease-in-out ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          } lg:translate-x-0`}
         >
           <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
             <Link to="/admin/dashboard" className="flex items-center space-x-2">
@@ -262,7 +262,7 @@ const AdminLayout: React.FC = () => {
           </div>
         </aside>
 
-        <div className="flex flex-1 flex-col min-h-0">
+        <div className="flex flex-1 flex-col min-h-0 lg:ml-72">
           <header className="sticky top-0 z-30 neu-header neu-header-accent">
             <div className="flex h-16 items-center justify-between px-4 sm:px-6">
               <div className="flex items-center">

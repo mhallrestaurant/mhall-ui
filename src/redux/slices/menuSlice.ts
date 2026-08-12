@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { MenuItem, MenuCategory } from '../../types';
 import { API_BASE_URL } from '../../config/api';
+import { getCachedData, setCachedData } from '../../utils/cache';
 
 interface HomePageMenuCategory {
   id: number;
@@ -69,6 +70,11 @@ export const fetchHomePageMenu = createAsyncThunk(
   'menu/fetchHomePageMenu',
   async (_, { rejectWithValue }) => {
     try {
+      const cached = getCachedData<HomePageMenuCategory[]>('homePageMenu');
+      if (cached) {
+        return cached;
+      }
+
       const response = await fetch(`${API_BASE_URL}/menu-items/public/home`);
       
       if (!response.ok) {
@@ -79,8 +85,11 @@ export const fetchHomePageMenu = createAsyncThunk(
       
       // Handle different response formats
       if (data.success && data.data) {
-        return data.data;
+        const menu = data.data;
+        setCachedData('homePageMenu', menu, 5 * 60 * 1000);
+        return menu;
       } else if (Array.isArray(data)) {
+        setCachedData('homePageMenu', data, 5 * 60 * 1000);
         return data;
       } else {
         throw new Error('Unexpected response format');

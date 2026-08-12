@@ -6,6 +6,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Order,
   Payment,
@@ -33,6 +34,7 @@ import {
   OrderItem,
 } from '../types';
 import apiService from '../services/api';
+import { getCachedData, setCachedData, removeCachedData } from '../utils/cache';
 
 interface AdminContextType {
   // Orders
@@ -41,6 +43,7 @@ interface AdminContextType {
   updateOrderStatus: (orderId: string, status: Status) => void;
   updateOrderPaymentStatus: (orderId: string, status: PaymentStatus) => void;
   getOrderById: (id: string) => Order | undefined;
+  deleteOrder: (orderId: string) => Promise<void>;
 
   // Payments
   payments: Payment[];
@@ -113,6 +116,18 @@ interface AdminProviderProps {
 }
 
 export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
+  const location = useLocation();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lastPath, setLastPath] = useState(location.pathname);
+
+  // Refresh data when navigating between admin pages
+  useEffect(() => {
+    if (location.pathname !== lastPath) {
+      setLastPath(location.pathname);
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [location.pathname, lastPath]);
+
   // Initialize state
   const [orders, setOrders] = useState<Order[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -128,7 +143,44 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load data from API on mount
+  // Load data from cache first for immediate display
+  const loadFromCache = () => {
+    const savedOrders = getCachedData<Order[]>('admin_orders');
+    const savedPayments = getCachedData<Payment[]>('admin_payments');
+    const savedReservations = getCachedData<Reservation[]>('admin_reservations');
+    const savedCatering = getCachedData<CateringRequest[]>('admin_catering');
+    const savedMenuItems = getCachedData<MenuItem[]>('admin_menuItems');
+    const savedCategories = getCachedData<MenuCategory[]>('admin_menuCategories');
+    const savedNotifications = getCachedData<NotificationLog[]>('admin_notifications');
+    const savedStatusHistory = getCachedData<StatusHistory[]>('admin_statusHistory');
+    const savedContentBlocks = getCachedData<ContentBlock[]>('admin_contentBlocks');
+    const savedPromoBanners = getCachedData<PromoBanner[]>('admin_promoBanners');
+    const savedPaymentRecords = getCachedData<PaymentRecord[]>('admin_paymentRecords');
+    const savedAdminActions = getCachedData<AdminActionLog[]>('admin_adminActions');
+
+    if (savedOrders) setOrders(savedOrders);
+    if (savedPayments) setPayments(savedPayments);
+    if (savedReservations) setReservations(savedReservations);
+    if (savedCatering) setCateringRequests(savedCatering);
+    if (savedMenuItems) setMenuItems(savedMenuItems);
+    if (savedCategories) setMenuCategories(savedCategories);
+    if (savedNotifications) setNotifications(savedNotifications);
+    if (savedStatusHistory) setStatusHistory(savedStatusHistory);
+    if (savedContentBlocks) setContentBlocks(savedContentBlocks);
+    if (savedPromoBanners) setPromoBanners(savedPromoBanners);
+    if (savedPaymentRecords) setPaymentRecords(savedPaymentRecords);
+    if (savedAdminActions) setAdminActions(savedAdminActions);
+  };
+
+  // Save to cache helper
+  const saveToCache = useCallback((key: string, data: any) => {
+    try {
+      setCachedData(key, data, 10 * 60 * 1000); // 10 minutes cache
+    } catch (error) {
+      console.error('Failed to save to cache:', error);
+    }
+  }, []);
+
   const normalizeApiResponse = (response: any): any[] => {
     if (!response) return [];
     if (Array.isArray(response.data)) return response.data;
@@ -138,34 +190,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const loadData = async () => {
+      loadFromCache();
+
       try {
-        // Load from localStorage first for immediate display
-        const savedOrders = localStorage.getItem('mh_orders');
-        const savedPayments = localStorage.getItem('mh_payments');
-        const savedReservations = localStorage.getItem('mh_reservations');
-        const savedCatering = localStorage.getItem('mh_catering');
-        const savedMenuItems = localStorage.getItem('mh_menuItems');
-        const savedCategories = localStorage.getItem('mh_menuCategories');
-        const savedNotifications = localStorage.getItem('mh_notifications');
-        const savedStatusHistory = localStorage.getItem('mh_statusHistory');
-        const savedContentBlocks = localStorage.getItem('mh_contentBlocks');
-        const savedPromoBanners = localStorage.getItem('mh_promoBanners');
-        const savedPaymentRecords = localStorage.getItem('mh_paymentRecords');
-        const savedAdminActions = localStorage.getItem('mh_adminActions');
-
-        if (savedOrders) setOrders(JSON.parse(savedOrders));
-        if (savedPayments) setPayments(JSON.parse(savedPayments));
-        if (savedReservations) setReservations(JSON.parse(savedReservations));
-        if (savedCatering) setCateringRequests(JSON.parse(savedCatering));
-        if (savedMenuItems) setMenuItems(JSON.parse(savedMenuItems));
-        if (savedCategories) setMenuCategories(JSON.parse(savedCategories));
-        if (savedNotifications) setNotifications(JSON.parse(savedNotifications));
-        if (savedStatusHistory) setStatusHistory(JSON.parse(savedStatusHistory));
-        if (savedContentBlocks) setContentBlocks(JSON.parse(savedContentBlocks));
-        if (savedPromoBanners) setPromoBanners(JSON.parse(savedPromoBanners));
-        if (savedPaymentRecords) setPaymentRecords(JSON.parse(savedPaymentRecords));
-        if (savedAdminActions) setAdminActions(JSON.parse(savedAdminActions));
-
         // Fetch from API
         const [
           menuItemsRes,
@@ -271,6 +298,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             total: Number(order.totalAmount || order.total || 0),
             status: normalizeOrderStatus(order.status),
             paymentStatus: normalizePaymentStatus(order.paymentStatus),
+            paidAmount: Number(order.paidAmount || 0),
+            remainingAmount: Number(order.remainingAmount || 0),
           }));
           setOrders(transformedOrders);
         }
@@ -314,6 +343,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             cateringId: notif.cateringRequestId ? String(notif.cateringRequestId) : undefined,
             status: (notif.sentStatus || 'PENDING').toLowerCase(),
             sentAt: notif.sentAt || notif.createdAt || new Date().toISOString(),
+            read: Boolean(notif.readAt),
           }));
           setNotifications(transformedNotifications);
         }
@@ -324,38 +354,55 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       }
     };
     loadData();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    const pollNotifications = async () => {
+      try {
+        const res = await apiService.getNotifications({ limit: 50 });
+        const data = normalizeApiResponse(res);
+        const transformed = data.map((notif: any) => ({
+          ...notif,
+          id: String(notif.id),
+          message: notif.message || notif.messageSummary || notif.providerMessageId || 'Notification received',
+          orderId: notif.orderId ? String(notif.orderId) : undefined,
+          reservationId: notif.reservationId ? String(notif.reservationId) : undefined,
+          cateringId: notif.cateringRequestId ? String(notif.cateringRequestId) : undefined,
+          status: (notif.sentStatus || 'PENDING').toLowerCase(),
+          sentAt: notif.sentAt || notif.createdAt || new Date().toISOString(),
+          read: Boolean(notif.readAt),
+        }));
+        setNotifications(transformed);
+        saveToCache('admin_notifications', transformed);
+      } catch (error) {
+        console.error('Error polling notifications:', error);
+      }
+    };
+
+    const interval = setInterval(pollNotifications, 30000);
+    pollNotifications();
+
+    return () => clearInterval(interval);
   }, []);
 
   const normalizeOrderStatus = useCallback((value?: string): Status => {
     const normalized = (value || 'PENDING').toUpperCase();
-    const map: Record<string, Status> = {
-      PENDING: 'new',
-      PAYMENT_WAITING: 'new',
-      PAYMENT_UNDER_REVIEW: 'confirmed',
-      APPROVED: 'confirmed',
-      CONFIRMED: 'confirmed',
-      PREPARING: 'preparing',
-      READY: 'ready',
-      OUT_FOR_DELIVERY: 'out_for_delivery',
-      COMPLETED: 'completed',
-      CANCELLED: 'cancelled',
-    };
-    return map[normalized] || 'new';
+    return normalized as Status;
   }, []);
 
   const normalizePaymentStatus = useCallback((value?: string): PaymentStatus => {
     const normalized = (value || 'WAITING_PAYMENT').toUpperCase();
     const map: Record<string, PaymentStatus> = {
       NOT_REQUIRED: 'paid',
-      WAITING_PAYMENT: 'pending',
-      UNDER_REVIEW: 'pending',
+      WAITING_PAYMENT: 'cancelled',
+      UNDER_REVIEW: 'cancelled',
       PARTIALLY_PAID: 'partial',
       PAID: 'paid',
       REJECTED: 'failed',
       FAILED: 'failed',
       CANCELLED: 'cancelled',
     };
-    return map[normalized] || 'pending';
+    return map[normalized] || 'cancelled';
   }, []);
 
   const normalizeReservationStatus = useCallback((value?: string): ReservationStatus => {
@@ -404,15 +451,6 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     return map[value] || 'PENDING';
   }, []);
 
-  // Save to localStorage helper
-  const saveToStorage = useCallback((key: string, data: any) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save to localStorage:', error);
-    }
-  }, []);
-
   // Admin Actions - declared first so it can be used by others
   const logAdminAction = useCallback((actionData: Omit<AdminActionLog, 'id' | 'timestamp'>) => {
     const newAction: AdminActionLog = {
@@ -422,10 +460,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setAdminActions(prev => {
       const updated = [newAction, ...prev];
-      saveToStorage('mh_adminActions', updated);
+      saveToCache('admin_adminActions', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   // Notifications - declared early
   const addNotification = useCallback((notificationData: Omit<NotificationLog, 'id' | 'sentAt'>) => {
@@ -437,18 +475,18 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setNotifications(prev => {
       const updated = [newNotification, ...prev];
-      saveToStorage('mh_notifications', updated);
+      saveToCache('admin_notifications', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   const markAllNotificationsRead = useCallback(() => {
     setNotifications(prev => {
       const updated = prev.map(notification => ({ ...notification, read: true }));
-      saveToStorage('mh_notifications', updated);
+      saveToCache('admin_notifications', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   const resendNotification = useCallback((id: string) => {
     setNotifications(prev => {
@@ -461,7 +499,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
           status: 'sent',
         };
         const updated = [resentNotification, ...prev];
-        saveToStorage('mh_notifications', updated);
+        saveToCache('admin_notifications', updated);
         logAdminAction({
           action: 'Resend Notification',
           entityType: 'Notification',
@@ -472,7 +510,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       }
       return prev;
     });
-  }, [saveToStorage, logAdminAction]);
+  }, [saveToCache, logAdminAction]);
 
   const sendCustomEmail = useCallback(async (orderId: string, message: string) => {
     try {
@@ -515,10 +553,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setStatusHistory(prev => {
       const updated = [newHistory, ...prev];
-      saveToStorage('mh_statusHistory', updated);
+      saveToCache('admin_statusHistory', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   // Orders
   const addOrder = useCallback((orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -530,7 +568,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setOrders(prev => {
       const updated = [...prev, newOrder];
-      saveToStorage('mh_orders', updated);
+      saveToCache('admin_orders', updated);
       return updated;
     });
     logAdminAction({
@@ -546,7 +584,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       status: 'pending',
       orderId: newOrder.id,
     });
-  }, [saveToStorage, logAdminAction, addNotification]);
+  }, [saveToCache, logAdminAction, addNotification]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: Status) => {
     try {
@@ -575,7 +613,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             }
             return order;
           });
-          saveToStorage('mh_orders', updated);
+          saveToCache('admin_orders', updated);
           return updated;
         });
         logAdminAction({
@@ -588,25 +626,49 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating order status via API:', error);
     }
-  }, [saveToStorage, addStatusHistory, logAdminAction, normalizeOrderStatus, orders]);
+  }, [saveToCache, addStatusHistory, logAdminAction, normalizeOrderStatus, orders]);
 
   const updateOrderPaymentStatus = useCallback(async (orderId: string, newStatus: PaymentStatus) => {
     try {
       const currentOrder = orders.find(order => String(order.id) === String(orderId));
-      const response = await apiService.updateOrderStatus(parseInt(orderId, 10), undefined, undefined, newStatus, currentOrder?.customer?.email);
+      const response = await apiService.updateOrderStatus(
+        parseInt(orderId, 10),
+        currentOrder?.status,
+        undefined,
+        newStatus,
+        currentOrder?.customer?.email
+      );
       if (response.data?.data) {
         setOrders(prev => {
           const updated = prev.map(order => {
             if (String(order.id) === String(orderId)) {
+              const total = Number(order.total);
+              let paidAmount = Number(order.paidAmount);
+              let remainingAmount = Number(order.remainingAmount);
+
+              if (newStatus === 'paid') {
+                paidAmount = total;
+                remainingAmount = 0;
+              } else if (newStatus === 'partial') {
+                const half = parseFloat((total / 2).toFixed(2));
+                paidAmount = half;
+                remainingAmount = parseFloat((total - half).toFixed(2));
+              } else if (newStatus === 'cancelled' || newStatus === 'failed') {
+                paidAmount = 0;
+                remainingAmount = total;
+              }
+
               return {
                 ...order,
                 paymentStatus: normalizePaymentStatus(newStatus),
+                paidAmount,
+                remainingAmount,
                 updatedAt: new Date().toISOString(),
               };
             }
             return order;
           });
-          saveToStorage('mh_orders', updated);
+          saveToCache('admin_orders', updated);
           return updated;
         });
         logAdminAction({
@@ -619,11 +681,30 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating payment status via API:', error);
     }
-  }, [saveToStorage, logAdminAction, normalizePaymentStatus, orders]);
+  }, [saveToCache, logAdminAction, normalizePaymentStatus, orders]);
 
   const getOrderById = useCallback((id: string) => {
     return orders.find(o => o.id === id);
   }, [orders]);
+
+  const deleteOrder = useCallback(async (orderId: string) => {
+    try {
+      await apiService.deleteOrder(parseInt(orderId, 10));
+      setOrders(prev => {
+        const updated = prev.filter(order => order.id !== orderId);
+        saveToCache('admin_orders', updated);
+        logAdminAction({
+          action: 'Delete Order',
+          entityType: 'Order',
+          entityId: orderId,
+          details: `Order #${orders.find(o => o.id === orderId)?.orderNumber || orderId} deleted`,
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error deleting order via API:', error);
+    }
+  }, [saveToCache, logAdminAction, orders]);
 
   // Payments
   const addPayment = useCallback((paymentData: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -635,10 +716,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setPayments(prev => {
       const updated = [...prev, newPayment];
-      saveToStorage('mh_payments', updated);
+      saveToCache('admin_payments', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   const addPaymentRecord = useCallback((recordData: Omit<PaymentRecord, 'id' | 'createdAt'>) => {
     const newRecord: PaymentRecord = {
@@ -648,10 +729,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setPaymentRecords(prev => {
       const updated = [...prev, newRecord];
-      saveToStorage('mh_paymentRecords', updated);
+      saveToCache('admin_paymentRecords', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   // Reservations
   const addReservation = useCallback((reservationData: Omit<Reservation, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -663,7 +744,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setReservations(prev => {
       const updated = [...prev, newReservation];
-      saveToStorage('mh_reservations', updated);
+      saveToCache('admin_reservations', updated);
       return updated;
     });
     logAdminAction({
@@ -679,7 +760,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       status: 'pending',
       reservationId: newReservation.id,
     });
-  }, [saveToStorage, logAdminAction, addNotification]);
+  }, [saveToCache, logAdminAction, addNotification]);
 
   const updateReservationStatus = useCallback(async (id: string, newStatus: ReservationStatus) => {
     const backendStatus = mapReservationStatusToBackend(newStatus);
@@ -717,14 +798,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             }
             return reservation;
           });
-          saveToStorage('mh_reservations', updated);
+          saveToCache('admin_reservations', updated);
           return updated;
         });
       }
     } catch (error) {
       console.error('Error updating reservation status via API:', error);
     }
-  }, [saveToStorage, addNotification, logAdminAction, normalizeReservationStatus, reservations]);
+  }, [saveToCache, addNotification, logAdminAction, normalizeReservationStatus, reservations]);
 
   // Catering Requests
   const addCateringRequest = useCallback((requestData: Omit<CateringRequest, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -736,7 +817,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
     setCateringRequests(prev => {
       const updated = [...prev, newRequest];
-      saveToStorage('mh_catering', updated);
+      saveToCache('admin_catering', updated);
       return updated;
     });
     logAdminAction({
@@ -752,7 +833,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       status: 'pending',
       cateringId: newRequest.id,
     });
-  }, [saveToStorage, logAdminAction, addNotification]);
+  }, [saveToCache, logAdminAction, addNotification]);
 
   const updateCateringStatus = useCallback(async (id: string, newStatus: CateringStatus) => {
     const backendStatus = mapCateringStatusToBackend(newStatus);
@@ -790,14 +871,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             }
             return request;
           });
-          saveToStorage('mh_catering', updated);
+          saveToCache('admin_catering', updated);
           return updated;
         });
       }
     } catch (error) {
       console.error('Error updating catering status via API:', error);
     }
-  }, [saveToStorage, addNotification, logAdminAction, normalizeCateringStatus, cateringRequests]);
+  }, [saveToCache, addNotification, logAdminAction, normalizeCateringStatus, cateringRequests]);
 
   // Menu
   const addMenuItem = useCallback(async (itemData: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt' | 'slug'>) => {
@@ -824,7 +905,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       };
       setMenuItems(prev => {
         const updated = [...prev, newItem];
-        saveToStorage('mh_menuItems', updated);
+        saveToCache('admin_menuItems', updated);
         return updated;
       });
       logAdminAction({
@@ -842,7 +923,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error adding menu item:', error);
     }
-  }, [menuCategories, saveToStorage, logAdminAction, addNotification]);
+  }, [menuCategories, saveToCache, logAdminAction, addNotification]);
 
   const updateMenuItem = useCallback(async (id: string, updates: Partial<MenuItem>) => {
     try {
@@ -891,7 +972,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       };
       setMenuItems(prev => {
         const updated = prev.map(item => item.id === Number(id) ? updatedItem : item);
-        saveToStorage('mh_menuItems', updated);
+        saveToCache('admin_menuItems', updated);
         return updated;
       });
       logAdminAction({
@@ -903,14 +984,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating menu item:', error);
     }
-  }, [saveToStorage, logAdminAction]);
+  }, [saveToCache, logAdminAction]);
 
   const deleteMenuItem = useCallback(async (id: string) => {
     try {
       await apiService.deleteMenuItem(parseInt(id));
       setMenuItems(prev => {
         const updated = prev.filter(item => item.id !== Number(id));
-        saveToStorage('mh_menuItems', updated);
+        saveToCache('admin_menuItems', updated);
         logAdminAction({
           action: 'Delete Menu Item',
           entityType: 'MenuItem',
@@ -922,7 +1003,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error deleting menu item:', error);
     }
-  }, [saveToStorage, logAdminAction]);
+  }, [saveToCache, logAdminAction]);
 
   const addMenuCategory = useCallback(async (categoryData: Omit<MenuCategory, 'id' | 'createdAt'>) => {
     try {
@@ -944,7 +1025,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       };
       setMenuCategories(prev => {
         const updated = [...prev, transformedCategory];
-        saveToStorage('mh_menuCategories', updated);
+        saveToCache('admin_menuCategories', updated);
         return updated;
       });
       logAdminAction({
@@ -962,7 +1043,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error adding category:', error);
     }
-  }, [saveToStorage, logAdminAction, addNotification]);
+  }, [saveToCache, logAdminAction, addNotification]);
 
   const updateCategory = useCallback(async (id: string, updates: Partial<MenuCategory>) => {
     try {
@@ -993,7 +1074,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       };
       setMenuCategories(prev => {
         const updated = prev.map(category => category.id === id ? transformedCategory : category);
-        saveToStorage('mh_menuCategories', updated);
+        saveToCache('admin_menuCategories', updated);
         return updated;
       });
       logAdminAction({
@@ -1005,7 +1086,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating category:', error);
     }
-  }, [saveToStorage, logAdminAction]);
+  }, [saveToCache, logAdminAction]);
 
   const deleteCategory = useCallback(async (id: string) => {
     try {
@@ -1013,7 +1094,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       await apiService.deleteCategory(parseInt(id));
       setMenuCategories(prev => {
         const updated = prev.filter(c => c.id !== id);
-        saveToStorage('mh_menuCategories', updated);
+        saveToCache('admin_menuCategories', updated);
         logAdminAction({
           action: 'Delete Menu Category',
           entityType: 'MenuCategory',
@@ -1025,7 +1106,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error deleting category:', error);
     }
-  }, [menuCategories, saveToStorage, logAdminAction]);
+  }, [menuCategories, saveToCache, logAdminAction]);
 
   // Content Management
   const updateContentBlock = useCallback((id: string, updates: Partial<ContentBlock>) => {
@@ -1040,10 +1121,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         }
         return block;
       });
-      saveToStorage('mh_contentBlocks', updated);
+      saveToCache('admin_contentBlocks', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   // Promo Banners
   const updatePromoBanner = useCallback((id: string, updates: Partial<PromoBanner>) => {
@@ -1058,10 +1139,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         }
         return banner;
       });
-      saveToStorage('mh_promoBanners', updated);
+      saveToCache('admin_promoBanners', updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToCache]);
 
   // Dashboard Metrics
   const getDashboardMetrics = useCallback((): DashboardMetrics => {
@@ -1083,7 +1164,6 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     });
 
     const paymentSummary: Record<PaymentStatus, number> = {
-      pending: 0,
       partial: 0,
       paid: 0,
       failed: 0,
@@ -1091,7 +1171,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     };
 
     orders.forEach(order => {
-      paymentSummary[order.paymentStatus]++;
+      if (order.paymentStatus === 'partial' || order.paymentStatus === 'paid' || order.paymentStatus === 'failed' || order.paymentStatus === 'cancelled') {
+        paymentSummary[order.paymentStatus]++;
+      }
     });
 
     // Calculate popular items
@@ -1109,6 +1191,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    const revenueStatuses = ['APPROVED', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED'] as const;
+
     // Revenue by day for last 7 days
     const revenueByDay: Array<{ date: string; amount: number }> = [];
     for (let i = 6; i >= 0; i--) {
@@ -1117,16 +1201,19 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       const dayRevenue = orders
         .filter(order => {
           const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-          return orderDate === dateStr && order.status === 'completed';
+          return orderDate === dateStr && revenueStatuses.includes(order.status as any) && (order.paymentStatus === 'paid' || order.paymentStatus === 'partial');
         })
-        .reduce((sum, order) => sum + order.total, 0);
+        .reduce((sum, order) => {
+          return sum + (order.paymentStatus === 'paid' ? order.total : (order.paidAmount || 0));
+        }, 0);
       revenueByDay.push({ date: dateStr, amount: Math.round(dayRevenue) });
     }
 
     return {
       totalOrders: orders.length,
       ordersByStatus,
-      totalRevenue: orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0),
+      totalRevenue: orders.filter(o => revenueStatuses.includes(o.status as any) && (o.paymentStatus === 'paid' || o.paymentStatus === 'partial'))
+        .reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.total : (o.paidAmount || 0)), 0),
       paymentSummary,
       totalReservations: reservations.length,
       totalCateringRequests: cateringRequests.length,
@@ -1148,28 +1235,31 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     });
 
     const ordersByStatus: Record<Status, number> = {
-      new: 0,
-      confirmed: 0,
-      preparing: 0,
-      ready: 0,
-      out_for_delivery: 0,
-      completed: 0,
-      cancelled: 0,
+      PENDING: 0,
+      CONFIRMED: 0,
+      PREPARING: 0,
+      READY: 0,
+      OUT_FOR_DELIVERY: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
     };
 
     const paymentBreakdown: Record<PaymentStatus, number> = {
-      pending: 0,
       partial: 0,
       paid: 0,
       failed: 0,
       cancelled: 0,
     };
 
+    const revenueStatuses = ['APPROVED', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED'] as const;
+
     const itemCount: Record<string, { name: string; count: number; revenue: number }> = {};
 
     reportOrders.forEach(order => {
-      ordersByStatus[order.status]++;
-      paymentBreakdown[order.paymentStatus]++;
+      ordersByStatus[order.status] = (ordersByStatus[order.status] || 0) + 1;
+      if (order.paymentStatus === 'partial' || order.paymentStatus === 'paid' || order.paymentStatus === 'failed' || order.paymentStatus === 'cancelled') {
+        paymentBreakdown[order.paymentStatus]++;
+      }
       order.items.forEach(item => {
         if (!itemCount[item.name]) {
           itemCount[item.name] = { name: item.name, count: 0, revenue: 0 };
@@ -1183,7 +1273,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
 
-    const totalRevenue = reportOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0);
+    const totalRevenue = reportOrders.filter(o => revenueStatuses.includes(o.status as any) && (o.paymentStatus === 'paid' || o.paymentStatus === 'partial'))
+      .reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.total : (o.paidAmount || 0)), 0);
     const reservationsCount = reservations.filter(r => {
       const resDate = new Date(r.createdAt);
       return resDate >= start && resDate <= end;
@@ -1216,6 +1307,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         updateOrderStatus,
         updateOrderPaymentStatus,
         getOrderById,
+        deleteOrder,
         payments,
         paymentRecords,
         addPayment,

@@ -77,7 +77,7 @@ const Footer: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
-                <span>25M6+9VF</span>
+                <span>Kanombe, Main Street, East near 15, Kigali, Rwanda</span>
               </li>
               <li className="flex items-center gap-3">
                 <svg className="h-5 w-5 shrink-0 text-[#C8981A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,19 +90,20 @@ const Footer: React.FC = () => {
                 <svg className="h-5 w-5 shrink-0 text-[#C8981A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
-                <span>info@moorhall.com</span>
+                <span>mhallrestaurant@gmail.com</span>
               </li>
             </ul>
             <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!4v1783589346025!6m8!1m7!1s7_h935J_k0oDfwfrx6yIXA!2m2!1d-1.966454131559618!2d30.162203761095!3f190.50243!4f0!5f0.7820865974627469"
-                className="h-48 w-full"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                title="Moor Hall location"
-              />
+               <iframe
+                 src="https://www.google.com/maps/embed?pb=!4v1783589346025!6m8!1m7!1s7_h935J_k0oDfwfrx6yIXA!2m2!1d-1.966454131559618!2d30.162203761095!3f190.50243!4f0!5f0.7820865974627469"
+                 className="h-48 w-full"
+                 style={{ border: 0 }}
+                 allowFullScreen
+                 loading="lazy"
+                 referrerPolicy="strict-origin-when-cross-origin"
+                 title="Moor Hall location"
+                 allow="accelerometer; gyroscope; magnetometer"
+               />
             </div>
           </div>
         </div>
@@ -115,7 +116,7 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex gap-6 text-sm">
               <Link to="/terms" className="text-white/80 transition-colors hover:text-[#C8981A]">Terms & Conditions</Link>
-              <a href="#" className="text-white/80 transition-colors hover:text-[#C8981A]">Privacy Policy</a>
+              <Link to="/privacy-policy" className="text-white/80 transition-colors hover:text-[#C8981A]">Privacy Policy</Link>
             </div>
           </div>
         </div>

@@ -74,8 +74,7 @@ const Home: React.FC = () => {
             <h2 className="text-slate-900 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">Moor Hall Restaurant</h2>
             
             <p className="text-slate-700 text-base md:text-lg leading-8 max-w-2xl mb-8 font-medium">
-              Since 2019, Moor Hall has been serving bold, honest food made from fresh local ingredients. 
-              Whether it's a quick lunch or a special occasion, we make every meal memorable.
+              Since 2019, Moor Hall has been serving bold, honest food made from fresh local ingredients at our home on the main street in Kanombe, ahead at East near 15, Kigali, Rwanda. Whether it is a quick lunch or a special occasion, we make every meal memorable.
             </p>
 
             <div className="space-y-4">
