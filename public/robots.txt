@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin/login
+Disallow: /admin/register
+Disallow: /reset-password
 
 Sitemap: https://moorhallrestaurant.com/sitemap.xml

@@ -1,0 +1,76 @@
+Moor Hall Restaurant
+====================
+
+Site: https://moorhallrestaurant.com
+
+Description:
+Moor Hall Restaurant offers authentic culinary experiences with specialty coffee,
+fresh bakery, and tailored catering for memorable events in Kigali, Rwanda.
+
+Purpose
+-------
+Provide public information about dining, menus, services, gallery, restaurant
+information, and contact details.
+
+Key Sections
+------------
+
+- Home: https://moorhallrestaurant.com/
+
+- Menu: https://moorhallrestaurant.com/menu
+  - Menu Viewer: https://moorhallrestaurant.com/menu/viewer
+  - Breakfast: https://moorhallrestaurant.com/menu/Breakfast
+  - Lunch: https://moorhallrestaurant.com/menu/Lunch
+  - Dinner: https://moorhallrestaurant.com/menu/Dinner
+  - Cocktails: https://moorhallrestaurant.com/menu/Cocktail
+  - Coffee & Beverages: https://moorhallrestaurant.com/menu/Coffee-Beverage
+  - PDF Menu: https://moorhallrestaurant.com/MOOR%20HALL%20RESTAURANT%20MENU_.pdf
+
+- Services: https://moorhallrestaurant.com/services
+
+- Gallery:
+  - Food: https://moorhallrestaurant.com/gallery/food
+  - Coffee Shop: https://moorhallrestaurant.com/gallery/coffee-shop
+  - Bakery: https://moorhallrestaurant.com/gallery/bakery
+  - Catering & Events: https://moorhallrestaurant.com/gallery/catering-events
+
+- About:
+  - Mission & Values: https://moorhallrestaurant.com/about/mission
+  - Our Story: https://moorhallrestaurant.com/about/our-story
+  - Why Choose Us: https://moorhallrestaurant.com/about/why-us
+
+- Contact: https://moorhallrestaurant.com/contacts
+
+- Legal:
+  - Terms: https://moorhallrestaurant.com/terms
+  - Privacy Policy: https://moorhallrestaurant.com/privacy-policy
+
+Contact
+-------
+
+Email: mhallrestaurant@gmail.com
+Booking Email: mhallrestaurant@gmail.com
+Phone: +250 788 658 316
+Reservation: +250 787 775 729
+WhatsApp: https://wa.me/250787775729
+
+Address:
+Kanombe, Main Street, East near 15,
+Kigali, Rwanda
+
+Hours:
+Mon-Fri: 06:00-22:00
+Sat: 06:00-23:00
+Sun: 06:00-21:00
+
+Notes
+-----
+
+The admin interface and API endpoints are not part of the public-facing website
+and should not be indexed by search engines.
+
+The public sitemap is available at:
+https://moorhallrestaurant.com/sitemap.xml
+
+The robots.txt file is available at:
+https://moorhallrestaurant.com/robots.txt
